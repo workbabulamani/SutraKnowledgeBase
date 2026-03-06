@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { ThemeProvider } from './context/ThemeContext.jsx';
 import { AppProvider } from './context/AppContext.jsx';
+import { api } from './api/client.js';
 import Login from './pages/Login.jsx';
 import Signup from './pages/Signup.jsx';
 import Layout from './components/Layout.jsx';
@@ -9,6 +10,11 @@ import Layout from './components/Layout.jsx';
 function AppInner() {
     const { isAuthenticated, loading } = useAuth();
     const [showSignup, setShowSignup] = useState(false);
+    const [allowSignup, setAllowSignup] = useState(false);
+
+    useEffect(() => {
+        api.getConfig().then(c => setAllowSignup(c.allowSignup)).catch(() => { });
+    }, []);
 
     if (loading) {
         return (
@@ -19,9 +25,10 @@ function AppInner() {
     }
 
     if (!isAuthenticated) {
-        return showSignup
-            ? <Signup onSwitch={() => setShowSignup(false)} />
-            : <Login onSwitch={() => setShowSignup(true)} />;
+        if (showSignup && allowSignup) {
+            return <Signup onSwitch={() => setShowSignup(false)} />;
+        }
+        return <Login onSwitch={allowSignup ? () => setShowSignup(true) : null} />;
     }
 
     return (

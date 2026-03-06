@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 
 export default function Login({ onSwitch }) {
@@ -8,6 +8,14 @@ export default function Login({ onSwitch }) {
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [totpCode, setTotpCode] = useState('');
+    const totpInputRef = useRef(null);
+
+    // Auto-focus TOTP input when 2FA screen appears
+    useEffect(() => {
+        if (pending2FA && totpInputRef.current) {
+            totpInputRef.current.focus();
+        }
+    }, [pending2FA]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -40,7 +48,7 @@ export default function Login({ onSwitch }) {
         return (
             <div className="auth-page">
                 <div className="auth-card">
-                    <div className="auth-logo"><img src="/logo2.svg" alt="Granth Vault" style={{ height: 64, width: 'auto' }} /></div>
+                    <div className="auth-logo"><img src="/logo2.svg" alt="Grnth Vault" style={{ height: 64, width: 'auto' }} /></div>
                     <h1>Two-Factor Auth</h1>
                     <p className="auth-subtitle">Enter the 6-digit code from your authenticator app</p>
                     {error && <div className="auth-error">{error}</div>}
@@ -48,6 +56,7 @@ export default function Login({ onSwitch }) {
                         <div className="form-group">
                             <label>Verification Code</label>
                             <input
+                                ref={totpInputRef}
                                 className="input"
                                 type="text"
                                 inputMode="numeric"
@@ -76,9 +85,9 @@ export default function Login({ onSwitch }) {
     return (
         <div className="auth-page">
             <div className="auth-card">
-                <div className="auth-logo"><img src="/logo2.svg" alt="Granth Vault" style={{ height: 64, width: 'auto' }} /></div>
+                <div className="auth-logo"><img src="/logo2.svg" alt="Grnth Vault" style={{ height: 64, width: 'auto' }} /></div>
                 <h1>Welcome back</h1>
-                <p className="auth-subtitle">Sign in to Granth Vault</p>
+                <p className="auth-subtitle">Sign in to Grnth Vault</p>
                 {error && <div className="auth-error">{error}</div>}
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
@@ -93,9 +102,11 @@ export default function Login({ onSwitch }) {
                         {loading ? <span className="spinner" /> : 'Sign In'}
                     </button>
                 </form>
-                <div className="auth-footer">
-                    Don't have an account? <a href="#" onClick={(e) => { e.preventDefault(); onSwitch(); }}>Sign up</a>
-                </div>
+                {onSwitch && (
+                    <div className="auth-footer">
+                        Don't have an account? <a href="#" onClick={(e) => { e.preventDefault(); onSwitch(); }}>Sign up</a>
+                    </div>
+                )}
             </div>
         </div>
     );

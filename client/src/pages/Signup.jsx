@@ -25,9 +25,9 @@ export default function Signup({ onSwitch }) {
     return (
         <div className="auth-container">
             <div className="auth-card">
-                <div className="auth-logo"><img src="/logo2.svg" alt="Granth Vault" style={{ height: 64, width: 'auto' }} /></div>
+                <div className="auth-logo"><img src="/logo2.svg" alt="Grnth Vault" style={{ height: 64, width: 'auto' }} /></div>
                 <h1>Create account</h1>
-                <p className="subtitle">Get started with Granth Vault</p>
+                <p className="subtitle">Get started with Grnth Vault</p>
                 {error && <div className="auth-error">{error}</div>}
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">

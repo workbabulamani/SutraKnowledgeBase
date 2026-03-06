@@ -1,6 +1,8 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { initDB } from './db.js';
@@ -20,20 +22,91 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// ===== Configuration =====
+const ALLOW_SIGNUP = (process.env.ALLOW_SIGNUP || 'false').toLowerCase() === 'true';
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS || '*';
+
 // Initialize database
 initDB();
 
-// Middleware
-app.use(cors());
+// ===== Security Middleware =====
+
+// Trust proxy for correct IP behind Docker/reverse proxy
+app.set('trust proxy', 1);
+
+// Helmet — security headers (CSP, HSTS, X-Frame-Options, etc.)
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com"],
+            imgSrc: ["'self'", "data:", "blob:"],
+            connectSrc: ["'self'"],
+            frameSrc: ["'none'"],
+            objectSrc: ["'none'"],
+            baseUri: ["'self'"],
+        },
+    },
+    crossOriginEmbedderPolicy: false, // Allow loading images/fonts
+}));
+
+// CORS — restrict origins based on ALLOWED_ORIGINS env var
+function buildCorsOptions() {
+    if (ALLOWED_ORIGINS === '*') {
+        return { origin: true, credentials: true };
+    }
+    const origins = ALLOWED_ORIGINS.split(',').map(o => o.trim()).filter(Boolean);
+    return {
+        origin: (origin, callback) => {
+            // Allow requests with no origin (mobile apps, curl, same-origin)
+            if (!origin) return callback(null, true);
+            if (origins.includes(origin)) return callback(null, true);
+            callback(new Error('Not allowed by CORS'));
+        },
+        credentials: true,
+    };
+}
+app.use(cors(buildCorsOptions()));
+
+// Body parser
 app.use(express.json({ limit: '50mb' }));
 
-// Static files - uploads (resolve the actual upload directory)
+// ===== Rate Limiting =====
+
+// Auth rate limiter: 10 requests per minute per IP for login/signup/2FA
+const authLimiter = rateLimit({
+    windowMs: 60 * 1000, // 1 minute
+    max: 10,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many attempts, please try again in a minute' },
+});
+
+// General API rate limiter: 200 requests per minute
+const apiLimiter = rateLimit({
+    windowMs: 60 * 1000,
+    max: 200,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many requests, please slow down' },
+});
+
+app.use('/api/', apiLimiter);
+
+// ===== Static files =====
 const uploadDir = process.env.UPLOAD_DIR || path.join(__dirname, '..', 'uploads', 'images');
 const uploadsBase = path.resolve(uploadDir, '..');
 app.use('/uploads', express.static(uploadsBase));
 
-// Auth routes need special handling: login and signup are public, others are protected
-const optionalAuth = (req, res, next) => {
+// ===== Public config endpoint =====
+app.get('/api/config', (req, res) => {
+    res.json({ allowSignup: ALLOW_SIGNUP });
+});
+
+// ===== Auth routes (mixed public/protected) =====
+const authOptionalAuth = (req, res, next) => {
     if (req.method === 'POST' && (req.path === '/login' || req.path === '/signup')) {
         return next();
     }
@@ -43,7 +116,20 @@ const optionalAuth = (req, res, next) => {
     return authenticate(req, res, next);
 };
 
-app.use('/api/auth', optionalAuth, authRoutes);
+// Apply rate limiter specifically to login/signup/totp-verify
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/signup', authLimiter);
+app.use('/api/totp/verify-login', authLimiter);
+
+app.use('/api/auth', authOptionalAuth, authRoutes);
+
+// TOTP routes: verify-login is public (uses temp token), others require auth
+const totpOptionalAuth = (req, res, next) => {
+    if (req.method === 'POST' && req.path === '/verify-login') {
+        return next();
+    }
+    return authenticate(req, res, next);
+};
 
 // All other routes are protected
 app.use('/api/collections', authenticate, collectionsRoutes);
@@ -54,13 +140,6 @@ app.use('/api/upload', authenticate, uploadRoutes);
 app.use('/api/admin', authenticate, adminRoutes);
 app.use('/api/backup', authenticate, backupRoutes);
 app.use('/api/preferences', authenticate, preferencesRoutes);
-// TOTP routes: verify-login is public (uses temp token), others require auth
-const totpOptionalAuth = (req, res, next) => {
-    if (req.method === 'POST' && req.path === '/verify-login') {
-        return next();
-    }
-    return authenticate(req, res, next);
-};
 app.use('/api/totp', totpOptionalAuth, totpRoutes);
 
 // Serve client build in production
@@ -73,5 +152,7 @@ app.get('*', (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 Granth Vault server running on http://localhost:${PORT}`);
+    console.log(`🚀 Grnth Vault server running on http://localhost:${PORT}`);
+    console.log(`   Signup: ${ALLOW_SIGNUP ? 'ENABLED' : 'DISABLED (admin creates users)'}`);
+    console.log(`   CORS origins: ${ALLOWED_ORIGINS}`);
 });

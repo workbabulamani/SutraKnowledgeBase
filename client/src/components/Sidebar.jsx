@@ -4,7 +4,7 @@ import { api } from '../api/client.js';
 import FileTree from './FileTree.jsx';
 
 const SutraBaseLogo = () => (
-    <img src="/logo.svg" width="28" height="28" alt="Granth Vault" style={{ borderRadius: 6 }} />
+    <img src="/logo.svg" width="28" height="28" alt="Grnth Vault" style={{ borderRadius: 6 }} />
 );
 
 export default function Sidebar({ collectionControls, onUploadClick }) {
@@ -38,7 +38,7 @@ export default function Sidebar({ collectionControls, onUploadClick }) {
             {/* Header */}
             <div className="sidebar-header">
                 <SutraBaseLogo />
-                <span className="sidebar-app-name">GRANTH VAULT</span>
+                <span className="sidebar-app-name">GRNTH VAULT</span>
                 <button className="btn-icon sidebar-close" onClick={() => setSidebarOpen(false)} title="Close sidebar">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <rect x="3" y="3" width="18" height="18" rx="2" />

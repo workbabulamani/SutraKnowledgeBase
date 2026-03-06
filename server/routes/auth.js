@@ -15,6 +15,11 @@ router.get('/session-info', (req, res) => {
 
 router.post('/signup', (req, res) => {
     try {
+        // Check if signup is allowed
+        const allowSignup = (process.env.ALLOW_SIGNUP || 'false').toLowerCase() === 'true';
+        if (!allowSignup) {
+            return res.status(403).json({ error: 'Signup is disabled. Contact the administrator.' });
+        }
         const { email, password, name } = req.body;
         if (!email || !password || !name) {
             return res.status(400).json({ error: 'Email, password, and name are required' });

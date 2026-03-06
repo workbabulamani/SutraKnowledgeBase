@@ -24,6 +24,9 @@ async function request(endpoint, options = {}) {
 }
 
 export const api = {
+    // Config (public)
+    getConfig: () => request('/config'),
+
     // Auth
     login: (email, password) => request('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
     signup: (email, name, password) => request('/auth/signup', { method: 'POST', body: JSON.stringify({ email, name, password }) }),

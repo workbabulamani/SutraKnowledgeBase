@@ -16,4 +16,6 @@ services:
       - ADMIN_EMAIL=admin@admin.com
       - ADMIN_PASSWORD=admin123
       - SESSION_TIMEOUT=30
+      - ALLOW_SIGNUP=false
+      - ALLOWED_ORIGINS=*
     restart: unless-stopped

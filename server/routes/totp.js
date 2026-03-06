@@ -69,7 +69,7 @@ function verifyTOTP(token, secret, window = 1) {
     return false;
 }
 
-function buildOTPAuthURI(secret, email, issuer = 'GranthVault') {
+function buildOTPAuthURI(secret, email, issuer = 'GrnthVault') {
     return `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(email)}?secret=${secret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
 }
 
