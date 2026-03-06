@@ -39,8 +39,8 @@ A lightweight, self-hosted Markdown knowledge base with a modern UI. Built for t
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/your-username/SutraKnowledgeBase.git
-   cd SutraKnowledgeBase
+   git clone https://github.com/workbabulamani/GRNTH_Vault.git
+   cd GRNTH_Vault
    ```
 
 2. **Configure environment**
@@ -80,8 +80,8 @@ A lightweight, self-hosted Markdown knowledge base with a modern UI. Built for t
 1. **Clone and install**
 
    ```bash
-   git clone https://github.com/your-username/SutraKnowledgeBase.git
-   cd SutraKnowledgeBase
+   git clone https://github.com/workbabulamani/GRNTH_Vault.git
+   cd GRNTH_Vault
 
    cd server && npm install && cd ..
    cd client && npm install && npm run build && cd ..
