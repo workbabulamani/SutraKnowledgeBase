@@ -1,6 +1,6 @@
 # GRNTH VAULT
 
-A lightweight, self-hosted Markdown knowledge base with a modern UI. Built for teams and individuals who want an Obsidian-like experience that runs anywhere — on your own server, in Docker, or locally.
+A lightweight, self-hosted Markdown knowledge base with a modern UI. Built for teams and individuals who want a powerful, private note-taking experience that runs anywhere — on your own server, in Docker, or locally.
 
 ## Features
 
