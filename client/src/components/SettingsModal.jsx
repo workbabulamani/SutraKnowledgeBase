@@ -38,6 +38,7 @@ export default function SettingsModal({ onClose }) {
     const [restoreFile, setRestoreFile] = useState(null);
     const [restoreFileKey, setRestoreFileKey] = useState('');
     const [restoringFile, setRestoringFile] = useState(false);
+    const [showDownloadKey, setShowDownloadKey] = useState(false);
 
     const isAdmin = user?.role === 'admin';
 
@@ -108,7 +109,7 @@ export default function SettingsModal({ onClose }) {
     };
 
     const handleDownload = async () => {
-        if (!downloadKey.trim()) { addToast('Please enter an encryption key'); return; }
+        if (downloadKey.trim().length < 8) { addToast('Encryption key must be at least 8 characters'); return; }
         try { await api.downloadBackup(downloadKey.trim()); addToast('Download started'); }
         catch (err) { addToast('Download failed'); }
     };
@@ -265,16 +266,28 @@ export default function SettingsModal({ onClose }) {
                                     <label style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500 }}>Secret Encryption Key</label>
                                     <input
                                         className="input"
-                                        type="password"
-                                        placeholder="Enter a secret key..."
+                                        type={showDownloadKey ? 'text' : 'password'}
+                                        placeholder="Enter a secret key (min 8 characters)..."
                                         value={downloadKey}
                                         onChange={e => setDownloadKey(e.target.value)}
                                     />
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6 }}>
+                                        <input
+                                            type="checkbox"
+                                            id="show-enc-key"
+                                            checked={showDownloadKey}
+                                            onChange={e => setShowDownloadKey(e.target.checked)}
+                                            style={{ cursor: 'pointer' }}
+                                        />
+                                        <label htmlFor="show-enc-key" style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)', cursor: 'pointer' }}>
+                                            Show encryption key
+                                        </label>
+                                    </div>
                                     <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)', margin: '4px 0 0' }}>
-                                        ⚠ Remember this key — it is required to restore your data.
+                                        ⚠ Remember this key — it is required to restore your data. Min 8 characters.
                                     </p>
                                 </div>
-                                <button className="btn btn-primary" onClick={handleDownload} disabled={!downloadKey.trim()}>
+                                <button className="btn btn-primary" onClick={handleDownload} disabled={downloadKey.trim().length < 8}>
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 6 }}><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
                                     Download All Data
                                 </button>

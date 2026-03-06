@@ -100,7 +100,7 @@ router.put('/password', (req, res) => {
         }
         const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
         if (!bcrypt.compareSync(currentPassword, user.password_hash)) {
-            return res.status(401).json({ error: 'Current password is incorrect' });
+            return res.status(400).json({ error: 'Current password is incorrect' });
         }
         const hash = bcrypt.hashSync(newPassword, 10);
         db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, req.user.id);

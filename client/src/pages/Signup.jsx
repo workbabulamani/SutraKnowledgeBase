@@ -25,9 +25,9 @@ export default function Signup({ onSwitch }) {
     return (
         <div className="auth-container">
             <div className="auth-card">
-                <div className="auth-logo"><img src="/logo2.svg" alt="Sutra Knowledge Base" style={{ height: 64, width: 'auto' }} /></div>
+                <div className="auth-logo"><img src="/logo2.svg" alt="Granth Vault" style={{ height: 64, width: 'auto' }} /></div>
                 <h1>Create account</h1>
-                <p className="subtitle">Get started with Sutra Knowledge Base</p>
+                <p className="subtitle">Get started with Granth Vault</p>
                 {error && <div className="auth-error">{error}</div>}
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">

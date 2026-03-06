@@ -10,7 +10,7 @@ import { useAuth } from '../context/AuthContext.jsx';
 import { renderMarkdown } from '../utils/markdown.js';
 
 const SutraBaseLogoSmall = () => (
-    <img src="/logo.svg" width="20" height="20" alt="SutraBase" style={{ borderRadius: 4 }} />
+    <img src="/logo.svg" width="20" height="20" alt="Granth Vault" style={{ borderRadius: 4 }} />
 );
 
 export default function Layout() {
@@ -152,7 +152,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:8px 12px;border:1px soli
                         <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--accent-color)" strokeWidth="1" style={{ opacity: 0.5 }}>
                             <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
                         </svg>
-                        <h2>Welcome to SutraBase</h2>
+                        <h2>Welcome to Granth Vault</h2>
                         <p>No collections found. Create your first collection from the sidebar to get started.</p>
                     </div>
                 ) : (

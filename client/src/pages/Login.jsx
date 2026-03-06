@@ -40,7 +40,7 @@ export default function Login({ onSwitch }) {
         return (
             <div className="auth-page">
                 <div className="auth-card">
-                    <div className="auth-logo"><img src="/logo2.svg" alt="Sutra Knowledge Base" style={{ height: 64, width: 'auto' }} /></div>
+                    <div className="auth-logo"><img src="/logo2.svg" alt="Granth Vault" style={{ height: 64, width: 'auto' }} /></div>
                     <h1>Two-Factor Auth</h1>
                     <p className="auth-subtitle">Enter the 6-digit code from your authenticator app</p>
                     {error && <div className="auth-error">{error}</div>}
@@ -76,9 +76,9 @@ export default function Login({ onSwitch }) {
     return (
         <div className="auth-page">
             <div className="auth-card">
-                <div className="auth-logo"><img src="/logo2.svg" alt="Sutra Knowledge Base" style={{ height: 64, width: 'auto' }} /></div>
+                <div className="auth-logo"><img src="/logo2.svg" alt="Granth Vault" style={{ height: 64, width: 'auto' }} /></div>
                 <h1>Welcome back</h1>
-                <p className="auth-subtitle">Sign in to Sutra Knowledge Base</p>
+                <p className="auth-subtitle">Sign in to Granth Vault</p>
                 {error && <div className="auth-error">{error}</div>}
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
