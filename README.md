@@ -34,7 +34,43 @@ A lightweight, self-hosted Markdown knowledge base with a modern UI. Built for t
 
 ---
 
-### Running with Docker (Recommended)
+### Quick Setup from Docker Hub (Fastest)
+
+No need to clone the repo. Just create a `docker-compose.yml`:
+
+```yaml
+services:
+  grnth-vault:
+    image: workbabulamani/grnth-vault:v1
+    ports:
+      - "3000:3000"
+    volumes:
+      - grnth-data:/app/data
+      - grnth-uploads:/app/uploads
+    environment:
+      - JWT_SECRET=change-me-to-a-strong-secret
+      - ADMIN_EMAIL=admin@admin.com
+      - ADMIN_PASSWORD=admin123
+      - ENCRYPTION_KEY=change-me-encryption-key
+      - SESSION_TIMEOUT=30
+      - ALLOW_SIGNUP=false
+      - ALLOWED_ORIGINS=*
+    restart: unless-stopped
+
+volumes:
+  grnth-data:
+  grnth-uploads:
+```
+
+```bash
+docker compose up -d
+```
+
+Open [http://localhost:3000](http://localhost:3000) — done!
+
+---
+
+### Building from Source (Docker)
 
 1. **Clone the repository**
 

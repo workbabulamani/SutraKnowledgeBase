@@ -34,22 +34,13 @@ initDB();
 // Trust proxy for correct IP behind Docker/reverse proxy
 app.set('trust proxy', 1);
 
-// Helmet — security headers (CSP, HSTS, X-Frame-Options, etc.)
+// Helmet — security headers (X-Frame-Options, X-Content-Type, referrer policy, etc.)
+// CSP disabled: causes white-page on LAN access (different IP/hostname)
+// HSTS disabled: app may run on HTTP (local/intranet)
 app.use(helmet({
-    contentSecurityPolicy: {
-        directives: {
-            defaultSrc: ["'self'"],
-            scriptSrc: ["'self'"],
-            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-            fontSrc: ["'self'", "https://fonts.gstatic.com"],
-            imgSrc: ["'self'", "data:", "blob:"],
-            connectSrc: ["'self'"],
-            frameSrc: ["'none'"],
-            objectSrc: ["'none'"],
-            baseUri: ["'self'"],
-        },
-    },
-    crossOriginEmbedderPolicy: false, // Allow loading images/fonts
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+    strictTransportSecurity: false,
 }));
 
 // CORS — restrict origins based on ALLOWED_ORIGINS env var
