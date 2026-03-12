@@ -47,6 +47,16 @@ export default function Sidebar({ collectionControls, onUploadClick }) {
                 </button>
             </div>
 
+            {/* Active collection name */}
+            {activeCollection && (
+                <div className="sidebar-collection-name">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ opacity: 0.6, flexShrink: 0 }}>
+                        <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
+                    </svg>
+                    <span style={{ fontWeight: 700, fontStyle: 'italic' }}>{activeCollection.name}</span>
+                </div>
+            )}
+
             {/* Search */}
             <div className="sidebar-search">
                 <div className="search-input-wrapper">

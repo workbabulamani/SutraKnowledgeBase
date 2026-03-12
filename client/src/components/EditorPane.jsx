@@ -1,15 +1,17 @@
-import { useCallback, useState, useEffect, useRef, useMemo } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext.jsx';
+import { EditorView } from '@codemirror/view';
 import Editor from './Editor.jsx';
+import LiveEditor from './LiveEditor.jsx';
 import Preview from './Preview.jsx';
 import NoteInfoSidebar from './NoteInfoSidebar.jsx';
-import { renderMarkdown } from '../utils/markdown.js';
 
 export default function EditorPane({ showMenu, onCloseMenu, menuActions }) {
     const { activeTab, editMode, setEditMode, updateTabContent, canEdit, sidebarOpen, setSidebarOpen, saveActiveFile, zoomLevel, setZoomLevel, liveEdit, setLiveEdit, readOnly, setReadOnly } = useApp();
     const [focusMode, setFocusMode] = useState(false);
     const [showNoteInfo, setShowNoteInfo] = useState(false);
     const [noteInfoWidth, setNoteInfoWidth] = useState(280);
+    const [lightboxSrc, setLightboxSrc] = useState(null);
     const sidebarWasOpenRef = useRef(true);
     const editorRef = useRef(null);
     const previewRef = useRef(null);
@@ -147,12 +149,44 @@ export default function EditorPane({ showMenu, onCloseMenu, menuActions }) {
         requestAnimationFrame(() => { isSyncingRef.current = false; });
     }, []);
 
-    // Heading click handler for NoteInfoSidebar
+    // Heading click handler for NoteInfoSidebar — works in both split-view and live edit
     const handleHeadingClick = useCallback((id) => {
+        // Try preview pane first (split-view / read-only mode)
         const previewEl = previewRef.current;
-        if (!previewEl) return;
-        const heading = previewEl.querySelector(`#${CSS.escape(id)}`);
-        if (heading) heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        if (previewEl) {
+            const heading = previewEl.querySelector(`#${CSS.escape(id)}`);
+            if (heading) {
+                heading.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                return;
+            }
+        }
+        // Live edit mode — scroll the CM6 editor to the heading via __cmView
+        const liveEditorEl = document.querySelector('.live-editor-container');
+        const cmViewRef = liveEditorEl?.__cmView;
+        const cmView = cmViewRef?.current;
+        if (cmView) {
+            const doc = cmView.state.doc;
+            for (let i = 1; i <= doc.lines; i++) {
+                const line = doc.line(i);
+                const match = line.text.match(/^#{1,6}\s+(.+)/);
+                if (match) {
+                    const hId = match[1].trim().toLowerCase().replace(/[^\w]+/g, '-').replace(/^-|-$/g, '');
+                    if (hId === id) {
+                        cmView.dispatch({
+                            effects: EditorView.scrollIntoView(line.from, { y: 'start' })
+                        });
+                        return;
+                    }
+                }
+            }
+        }
+    }, []);
+
+    // Image click handler for lightbox (event delegation)
+    const handlePreviewClick = useCallback((e) => {
+        if (e.target.tagName === 'IMG' && e.target.src) {
+            setLightboxSrc(e.target.src);
+        }
     }, []);
 
     if (!activeTab) {
@@ -179,7 +213,7 @@ export default function EditorPane({ showMenu, onCloseMenu, menuActions }) {
             <div className="editor-pane" style={{ zoom: zoomLevel / 100 }}>
                 {liveEdit ? (
                     <div className="preview-side live-edit-pane" style={{ borderLeft: 'none', flex: 1 }}>
-                        <LiveEditPane content={activeTab.content} onChange={handleContentChange} />
+                        <LiveEditor content={activeTab.content} onChange={handleContentChange} />
                     </div>
                 ) : showEditor ? (
                     <>
@@ -192,16 +226,28 @@ export default function EditorPane({ showMenu, onCloseMenu, menuActions }) {
                                 onScroll={handleEditorScroll}
                             />
                         </div>
-                        <div className="preview-side" ref={previewRef} onScroll={handlePreviewScroll}>
+                        <div className="preview-side" ref={previewRef} onScroll={handlePreviewScroll} onClick={handlePreviewClick}>
                             <Preview content={activeTab.content} />
                         </div>
                     </>
                 ) : (
-                    <div className="preview-side" style={{ borderLeft: 'none', flex: 1 }} ref={previewRef}>
+                    <div className="preview-side" style={{ borderLeft: 'none', flex: 1 }} ref={previewRef} onClick={handlePreviewClick}>
                         <Preview content={activeTab.content} />
                     </div>
                 )}
             </div>
+
+            {/* Image Lightbox */}
+            {lightboxSrc && (
+                <div className="image-lightbox" onClick={() => setLightboxSrc(null)}>
+                    <button className="image-lightbox-close" onClick={() => setLightboxSrc(null)}>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
+                    </button>
+                    <img src={lightboxSrc} alt="Expanded" onClick={e => e.stopPropagation()} />
+                </div>
+            )}
 
             {showNoteInfo && (
                 <>
@@ -254,176 +300,3 @@ export function getMenuItems(activeTab, canEdit, liveEdit, readOnly, zoomLevel) 
     ];
 }
 
-// --- Live Edit Pane ---
-// Groups fenced code blocks and tables as single editable blocks
-function LiveEditPane({ content, onChange }) {
-    const [editingBlockIdx, setEditingBlockIdx] = useState(null);
-    const [editText, setEditText] = useState('');
-    const textareaRef = useRef(null);
-
-    // Parse content into blocks: regular lines, code blocks, tables
-    const blocks = useMemo(() => {
-        const lines = (content || '').split('\n');
-        const result = [];
-        let i = 0;
-        while (i < lines.length) {
-            // Fenced code block
-            if (lines[i].trim().startsWith('```')) {
-                const blockStart = i;
-                i++;
-                while (i < lines.length && !lines[i].trim().startsWith('```')) {
-                    i++;
-                }
-                if (i < lines.length) i++; // include closing ```
-                result.push({ type: 'code', lines: lines.slice(blockStart, i), startLine: blockStart });
-            }
-            // Table block (consecutive lines starting with |)
-            else if (lines[i].trim().startsWith('|')) {
-                const blockStart = i;
-                while (i < lines.length && lines[i].trim().startsWith('|')) {
-                    i++;
-                }
-                result.push({ type: 'table', lines: lines.slice(blockStart, i), startLine: blockStart });
-            }
-            // Regular line
-            else {
-                result.push({ type: 'line', lines: [lines[i]], startLine: i });
-                i++;
-            }
-        }
-        return result;
-    }, [content]);
-
-    const handleBlockClick = (blockIdx) => {
-        const block = blocks[blockIdx];
-        setEditingBlockIdx(blockIdx);
-        setEditText(block.lines.join('\n'));
-        setTimeout(() => {
-            const ta = textareaRef.current;
-            if (ta) {
-                ta.focus();
-                ta.style.height = 'auto';
-                ta.style.height = ta.scrollHeight + 'px';
-            }
-        }, 0);
-    };
-
-    const commitEdit = useCallback(() => {
-        if (editingBlockIdx === null) return;
-        const block = blocks[editingBlockIdx];
-        const allLines = (content || '').split('\n');
-        const editedLines = editText.split('\n');
-        allLines.splice(block.startLine, block.lines.length, ...editedLines);
-        onChange(allLines.join('\n'));
-        setEditingBlockIdx(null);
-    }, [editingBlockIdx, editText, blocks, content, onChange]);
-
-    const handleKeyDown = (e) => {
-        if (editingBlockIdx === null) return;
-        const block = blocks[editingBlockIdx];
-
-        // For multi-line blocks (code/table), Enter should just insert newline
-        if (block.type === 'code' || block.type === 'table') {
-            if (e.key === 'Escape') {
-                e.preventDefault();
-                commitEdit();
-            }
-            // Let Enter work naturally for multi-line editing
-            // Auto-close ``` if user types ``` at the start
-            return;
-        }
-
-        // Single-line behavior
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            // Check if the user just typed ```, auto-close it
-            const trimmed = editText.trim();
-            if (trimmed.startsWith('```') && !trimmed.endsWith('```')) {
-                setEditText(editText + '\n\n```');
-                setTimeout(() => {
-                    const ta = textareaRef.current;
-                    if (ta) {
-                        ta.style.height = 'auto';
-                        ta.style.height = ta.scrollHeight + 'px';
-                        // Move cursor between the backticks
-                        const pos = editText.length + 1;
-                        ta.setSelectionRange(pos, pos);
-                    }
-                }, 0);
-                return;
-            }
-            commitEdit();
-            // Move to next block
-            if (editingBlockIdx < blocks.length - 1) {
-                handleBlockClick(editingBlockIdx + 1);
-            } else {
-                // Add a new line at end
-                const allLines = (content || '').split('\n');
-                allLines.push('');
-                onChange(allLines.join('\n'));
-                setTimeout(() => {
-                    setEditingBlockIdx(blocks.length);
-                    setEditText('');
-                    setTimeout(() => {
-                        const ta = textareaRef.current;
-                        if (ta) { ta.focus(); ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; }
-                    }, 0);
-                }, 50);
-            }
-        } else if (e.key === 'Escape') {
-            setEditingBlockIdx(null);
-        } else if (e.key === 'ArrowUp' && editingBlockIdx > 0) {
-            e.preventDefault();
-            commitEdit();
-            handleBlockClick(editingBlockIdx - 1);
-        } else if (e.key === 'ArrowDown' && editingBlockIdx < blocks.length - 1) {
-            e.preventDefault();
-            commitEdit();
-            handleBlockClick(editingBlockIdx + 1);
-        }
-    };
-
-    const handleTextareaChange = (e) => {
-        setEditText(e.target.value);
-        e.target.style.height = 'auto';
-        e.target.style.height = e.target.scrollHeight + 'px';
-    };
-
-    const renderBlock = (block) => {
-        const text = block.lines.join('\n');
-        if (block.type === 'code' || block.type === 'table') {
-            return renderMarkdown(text);
-        }
-        const line = block.lines[0];
-        if (!line.trim()) return '<br>';
-        return renderMarkdown(line).replace(/^<p>/, '').replace(/<\/p>\n?$/, '');
-    };
-
-    return (
-        <div className="live-edit-content md-preview">
-            {blocks.map((block, idx) => (
-                editingBlockIdx === idx ? (
-                    <div key={idx} className={`live-edit-line editing${block.type !== 'line' ? ' multi-line' : ''}`}>
-                        <textarea
-                            ref={textareaRef}
-                            className="live-edit-textarea"
-                            value={editText}
-                            onChange={handleTextareaChange}
-                            onBlur={commitEdit}
-                            onKeyDown={handleKeyDown}
-                            spellCheck={false}
-                            rows={block.type !== 'line' ? Math.max(3, block.lines.length) : 1}
-                        />
-                    </div>
-                ) : (
-                    <div
-                        key={idx}
-                        className={`live-edit-line rendered${block.type !== 'line' ? ' block-element' : ''}${!block.lines[0].trim() && block.type === 'line' ? ' empty-line' : ''}`}
-                        onClick={() => handleBlockClick(idx)}
-                        dangerouslySetInnerHTML={{ __html: renderBlock(block) }}
-                    />
-                )
-            ))}
-        </div>
-    );
-}

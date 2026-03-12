@@ -8,6 +8,7 @@ import ConfirmModal from './ConfirmModal.jsx';
 import { useApp } from '../context/AppContext.jsx';
 import { useAuth } from '../context/AuthContext.jsx';
 import { renderMarkdown } from '../utils/markdown.js';
+import { api } from '../api/client.js';
 
 const SutraBaseLogoSmall = () => (
     <img src="/logo.svg" width="20" height="20" alt="Grnth Vault" style={{ borderRadius: 4 }} />
@@ -127,8 +128,13 @@ table{width:100%;border-collapse:collapse}th,td{padding:8px 12px;border:1px soli
         <div className="app-layout">
             {!sidebarOpen && (
                 <div className="sidebar-rail">
-                    <button className="rail-btn rail-logo" onClick={() => setSidebarOpen(true)} title="Open sidebar">
-                        <SutraBaseLogoSmall />
+                    <button className="rail-btn rail-logo" onClick={() => setSidebarOpen(true)} title="Expand sidebar">
+                        <span className="rail-logo-icon"><SutraBaseLogoSmall /></span>
+                        <span className="rail-logo-expand">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <polyline points="13 17 18 12 13 7" /><polyline points="6 17 11 12 6 7" />
+                            </svg>
+                        </span>
                     </button>
                     <div className="rail-spacer" />
                     <button className="rail-btn" onClick={() => setShowSettings(true)} title="Settings">
@@ -178,6 +184,8 @@ table{width:100%;border-collapse:collapse}th,td{padding:8px 12px;border:1px soli
                     <div key={t.id} className="toast">{t.message}</div>
                 ))}
             </div>
+
+            <InactivityWarning />
         </div>
     );
 }
@@ -186,6 +194,7 @@ table{width:100%;border-collapse:collapse}th,td{padding:8px 12px;border:1px soli
 function ThreeDotsMenu({ onAction, activeTab, canEdit }) {
     const [showExport, setShowExport] = useState(false);
     const { liveEdit, readOnly, focusMode, autoSave, setAutoSave } = useApp();
+    const isFullScreen = !!document.fullscreenElement || !!document.webkitFullscreenElement;
 
     return (
         <div className="three-dots-menu">
@@ -220,7 +229,7 @@ function ThreeDotsMenu({ onAction, activeTab, canEdit }) {
             </button>
             <button className="menu-item" onClick={() => onAction('fullScreen')}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" /><line x1="21" y1="3" x2="14" y2="10" /><line x1="3" y1="21" x2="10" y2="14" /></svg>
-                <span>Full Screen</span>
+                <span>{isFullScreen ? 'Turn off Full Screen' : 'Turn on Full Screen'}</span>
             </button>
             <div className="menu-separator" />
             <button className="menu-item" onClick={() => onAction('noteInfo')}>
@@ -261,6 +270,7 @@ function ThreeDotsMenu({ onAction, activeTab, canEdit }) {
 function CollectionModal({ collections, activeCollection, switchCollection, loadCollections, addToast, canEdit, onClose }) {
     const [renamingId, setRenamingId] = useState(null);
     const [renameValue, setRenameValue] = useState('');
+    const [deletingId, setDeletingId] = useState(null);
 
     const handleRename = async (colId) => {
         const trimmed = renameValue.trim();
@@ -272,6 +282,21 @@ function CollectionModal({ collections, activeCollection, switchCollection, load
             loadCollections();
         } catch (err) { addToast('Failed to rename collection'); }
         setRenamingId(null);
+    };
+
+    const handleDelete = async (colId, colName) => {
+        if (colId === activeCollection?.id) {
+            addToast('Cannot delete the active collection');
+            setDeletingId(null);
+            return;
+        }
+        try {
+            const { api } = await import('../api/client.js');
+            await api.deleteCollection(colId);
+            addToast(`Deleted "${colName}"`);
+            loadCollections();
+        } catch (err) { addToast('Failed to delete collection'); }
+        setDeletingId(null);
     };
 
     return (
@@ -313,10 +338,28 @@ function CollectionModal({ collections, activeCollection, switchCollection, load
                                 <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)', marginTop: 2, paddingLeft: 24 }}>{col.file_count || 0} files · {col.folder_count || 0} folders</div>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                {canEdit && renamingId !== col.id && (
-                                    <button className="btn-icon" title="Rename" onClick={(e) => { e.stopPropagation(); setRenamingId(col.id); setRenameValue(col.name); }} style={{ opacity: 0.5 }}>
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
-                                    </button>
+                                {canEdit && renamingId !== col.id && deletingId !== col.id && (
+                                    <>
+                                        <button className="btn-icon" title="Rename" onClick={(e) => { e.stopPropagation(); setRenamingId(col.id); setRenameValue(col.name); }} style={{ opacity: 0.5 }}>
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>
+                                        </button>
+                                        {col.id !== activeCollection?.id && (
+                                            <button className="btn-icon" title="Delete" onClick={(e) => { e.stopPropagation(); setDeletingId(col.id); }} style={{ opacity: 0.5 }}>
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" /></svg>
+                                            </button>
+                                        )}
+                                    </>
+                                )}
+                                {deletingId === col.id && (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }} onClick={e => e.stopPropagation()}>
+                                        <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--error-color, #e55)' }}>Delete?</span>
+                                        <button className="btn-icon" title="Confirm Delete" onClick={() => handleDelete(col.id, col.name)} style={{ color: 'var(--error-color, #e55)' }}>
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                                        </button>
+                                        <button className="btn-icon" title="Cancel" onClick={() => setDeletingId(null)} style={{ opacity: 0.6 }}>
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                                        </button>
+                                    </div>
                                 )}
                                 {col.id === activeCollection?.id && (
                                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-color)" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
@@ -471,9 +514,8 @@ function SidebarWrapper({ onOpenSettings, width }) {
         for (const file of files) {
             try {
                 const text = await file.text();
-                let baseName = file.name.replace(/\.(md|txt)$/, '');
-                const ext = file.name.endsWith('.txt') ? '.txt' : '.md';
-                let finalName = baseName + ext;
+                let baseName = file.name.replace(/\.(md|txt)$/i, '');
+                let finalName = baseName + '.md';
                 let result = null;
                 // Try creating, auto-rename on duplicate
                 for (let attempt = 0; attempt < 10; attempt++) {
@@ -482,7 +524,7 @@ function SidebarWrapper({ onOpenSettings, width }) {
                         break;
                     } catch (err) {
                         if (err.message && err.message.includes('already exists') && attempt < 9) {
-                            finalName = `${baseName}_${attempt + 1}${ext}`;
+                            finalName = `${baseName}_${attempt + 1}.md`;
                         } else { throw err; }
                     }
                 }
@@ -497,7 +539,7 @@ function SidebarWrapper({ onOpenSettings, width }) {
         <div className="sidebar-collection-controls">
             {canEdit && !showNewCollection && (
                 <button className="sidebar-nav-item sidebar-nav-new-collection" onClick={() => setShowNewCollection(true)} title="New Collection">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" /><line x1="12" y1="8" x2="12" y2="16" /><line x1="8" y1="12" x2="16" y2="12" /></svg>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" /><line x1="12" y1="11" x2="12" y2="17" /><line x1="9" y1="14" x2="15" y2="14" /></svg>
                     <span>New Collection</span>
                 </button>
             )}
@@ -517,7 +559,7 @@ function SidebarWrapper({ onOpenSettings, width }) {
                 onClick={() => setShowCollectionModal(true)}
                 title="Switch Collection"
             >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" /></svg>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="16 3 21 3 21 8" /><line x1="4" y1="20" x2="21" y2="3" /><polyline points="21 16 21 21 16 21" /><line x1="15" y1="15" x2="21" y2="21" /><line x1="4" y1="4" x2="9" y2="9" /></svg>
                 <span>Switch collection</span>
             </button>
         </div>
@@ -559,5 +601,36 @@ function SidebarWrapper({ onOpenSettings, width }) {
                 />
             )}
         </>
+    );
+}
+
+// Inactivity warning banner — shown 2 min before auto-logout
+function InactivityWarning() {
+    const { inactivityWarning, setInactivityWarning } = useAuth();
+
+    if (!inactivityWarning) return null;
+
+    const handleStayLoggedIn = async () => {
+        try {
+            const data = await api.refreshToken();
+            if (data.token) {
+                localStorage.setItem('md_viewer_token', data.token);
+            }
+        } catch (e) { /* will be caught by auth check */ }
+        setInactivityWarning(false);
+    };
+
+    return (
+        <div className="inactivity-warning">
+            <div className="inactivity-warning-content">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <span>Your session will expire in 2 minutes due to inactivity</span>
+                <button className="btn btn-primary" onClick={handleStayLoggedIn} style={{ padding: '4px 12px', fontSize: 'var(--font-size-sm)' }}>
+                    Stay Logged In
+                </button>
+            </div>
+        </div>
     );
 }

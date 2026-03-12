@@ -154,6 +154,13 @@ export default function FileTree({ onUploadClick, collectionControls }) {
     // Find active file's parent folder
     const activeFolderId = activeTab ? findFolderContainingFile(tree, activeTab.fileId) : null;
 
+    // Auto-expand folder of active file (e.g., on session restore after login)
+    useEffect(() => {
+        if (activeFolderId && !expandedFolders.has(activeFolderId)) {
+            setExpandedFolders(prev => new Set([...prev, activeFolderId]));
+        }
+    }, [activeFolderId, tree]);
+
     const toggleFolder = useCallback((folderId) => {
         setSelectedFolderId(folderId);
         setExpandedFolders(prev => {

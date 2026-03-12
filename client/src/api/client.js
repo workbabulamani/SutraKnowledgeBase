@@ -92,7 +92,7 @@ export const api = {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `sutra_backup_${new Date().toISOString().slice(0, 10)}`;
+        a.download = `grnth_backup_${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}`;
         a.click();
         URL.revokeObjectURL(url);
     },
@@ -122,4 +122,11 @@ export const api = {
     // Preferences
     getPreferences: () => request('/preferences'),
     savePreferences: (preferences) => request('/preferences', { method: 'PUT', body: JSON.stringify({ preferences }) }),
+
+    // Name change & token refresh
+    changeName: (name) => request('/auth/name', { method: 'PUT', body: JSON.stringify({ name }) }),
+    refreshToken: () => request('/auth/refresh', { method: 'POST' }),
+
+    // Admin logs
+    getLogs: (page = 1, limit = 50) => request(`/admin/logs?page=${page}&limit=${limit}`),
 };

@@ -81,6 +81,15 @@ export function initDB() {
       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
       UNIQUE(user_id, pref_key)
     );
+
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER,
+      action TEXT NOT NULL,
+      details TEXT DEFAULT '',
+      ip_address TEXT DEFAULT '',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
   `);
 
   // Migration: Add TOTP columns for 2FA support
@@ -116,8 +125,15 @@ export function initDB() {
       'Welcome.md', folderResult.lastInsertRowid,
       `# Welcome to SutraBase! 🎉\n\nThis is your first markdown file. Start editing to explore the features!\n\n## Features\n\n- **Split View** — Edit on the left, preview on the right\n- **Collections** — Organize your notes into collections\n- **Folders** — Nest folders for better organization\n- **Bookmarks** — Quick access to important files\n- **Dark Mode** — Easy on the eyes\n\n## Code Example\n\n\`\`\`javascript\nfunction greet(name) {\n  return \`Hello, \${name}!\`;\n}\n\nconsole.log(greet('World'));\n\`\`\`\n\n## Task List\n\n- [x] Install SutraBase\n- [ ] Create your first note\n- [ ] Explore collections\n- [ ] Try dark mode\n\n> **Tip:** Press the edit/view toggle in the toolbar to switch between editing and reading mode.\n`
     );
-    console.log(`✅ Database seeded with default admin (${adminEmail} / ${adminPassword})`);
+    console.log(`✅ Database seeded with default admin account`);
   }
+}
+
+// Audit logging helper
+export function logEvent(action, details = '', userId = null, ipAddress = '') {
+  try {
+    db.prepare('INSERT INTO audit_logs (user_id, action, details, ip_address) VALUES (?, ?, ?, ?)').run(userId, action, details, ipAddress);
+  } catch (e) { /* logging should never crash the app */ }
 }
 
 export default db;

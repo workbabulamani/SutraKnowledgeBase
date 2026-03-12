@@ -1,16 +1,17 @@
 services:
   grnthvault:
     build: .
+    container_name: grnthvault
     ports:
-      - "3000:3000"
+      - "${PORT:-3001}:${PORT:-3001}"
     volumes:
       - ./data:/app/data
-      - ./uploads:/app/uploads
-      - /app/node_modules
     env_file:
       - .env
-    environment:
-      - PORT=3000
-      - DB_PATH=/app/data/md_viewer.db
-      - UPLOAD_DIR=/app/uploads/images
     restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:${PORT:-3001}/api/config" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s

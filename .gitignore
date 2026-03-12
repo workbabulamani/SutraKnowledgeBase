@@ -1,4 +1,13 @@
-Planning Markdown Editor App.md
+# Planning Markdown Editor App.md
 SutraBase UI Enhancements.md
 .env
 data
+node_modules
+client/node_modules
+server/node_modules
+*.db
+*.db-shm
+*.db-wal
+uploads/
+client/dist
+server/uploads/

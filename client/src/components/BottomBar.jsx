@@ -22,12 +22,8 @@ export default function BottomBar() {
                 )}
             </div>
 
-            {/* Center: collection name */}
-            <div className="bottom-bar-center">
-                {activeCollection && (
-                    <span className="bottom-bar-collection-name">{activeCollection.name}</span>
-                )}
-            </div>
+            {/* Center: spacer */}
+            <div className="bottom-bar-center" />
 
             {/* Right side: mode badges + stats + zoom */}
             <div className="bottom-bar-right">

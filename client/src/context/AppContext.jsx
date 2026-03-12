@@ -18,7 +18,7 @@ export function AppProvider({ children }) {
     const [toasts, setToasts] = useState([]);
     const [autoSaveStatus, setAutoSaveStatus] = useState('');
     const [zoomLevel, setZoomLevel] = useState(100);
-    const [liveEdit, setLiveEdit] = useState(false);
+    const [liveEdit, setLiveEdit] = useState(true);
     const [readOnly, setReadOnly] = useState(false);
     const [autoSave, setAutoSave] = useState(true);
     const [timezone, setTimezoneState] = useState(() => localStorage.getItem('sutra_timezone') || 'Asia/Kolkata');
@@ -47,7 +47,10 @@ export function AppProvider({ children }) {
             const data = await api.getCollections();
             setCollections(data.collections);
             if (!activeCollection && data.collections.length > 0) {
-                setActiveCollection(data.collections[0]);
+                // Try to restore last active collection from localStorage
+                const lastColId = localStorage.getItem('grnth_last_collection');
+                const lastCol = lastColId ? data.collections.find(c => c.id === parseInt(lastColId)) : null;
+                setActiveCollection(lastCol || data.collections[0]);
             }
         } catch (err) { console.error('Load collections:', err); }
     }, [isAuthenticated, activeCollection]);
@@ -73,6 +76,23 @@ export function AppProvider({ children }) {
     useEffect(() => { loadCollections(); }, [loadCollections]);
     useEffect(() => { loadTree(); }, [loadTree]);
     useEffect(() => { loadBookmarks(); }, [loadBookmarks]);
+
+    // Save active collection ID to localStorage
+    useEffect(() => {
+        if (activeCollection) {
+            localStorage.setItem('grnth_last_collection', String(activeCollection.id));
+        }
+    }, [activeCollection]);
+
+    // Restore last open file on mount
+    useEffect(() => {
+        if (tree.length > 0 && tabs.length === 0 && activeCollection) {
+            const lastFileId = localStorage.getItem('grnth_last_file');
+            if (lastFileId) {
+                openFile(parseInt(lastFileId)).catch(() => { });
+            }
+        }
+    }, [tree]); // eslint-disable-line
 
     // Tab management
     const openFile = useCallback(async (fileId, fileName) => {
@@ -102,6 +122,14 @@ export function AppProvider({ children }) {
             addToast('Failed to open file');
         }
     }, [tabs, addToast]);
+
+    // Save active file ID to localStorage whenever the active tab changes
+    useEffect(() => {
+        const activeTab = tabs.find(t => t.id === activeTabId);
+        if (activeTab) {
+            localStorage.setItem('grnth_last_file', String(activeTab.fileId));
+        }
+    }, [activeTabId, tabs]);
 
     const closeTab = useCallback((tabId) => {
         setTabs(prev => {

@@ -120,7 +120,7 @@ router.post('/download', requireRole('admin', 'user'), async (req, res) => {
 
         const dateStr = new Date().toISOString().slice(0, 10);
         res.setHeader('Content-Type', 'application/octet-stream');
-        res.setHeader('Content-Disposition', `attachment; filename="sutra_backup_${dateStr}"`);
+        res.setHeader('Content-Disposition', `attachment; filename="grnth_backup_${new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19)}"`);
         res.send(encryptedData);
     } catch (err) {
         console.error('Download error:', err);

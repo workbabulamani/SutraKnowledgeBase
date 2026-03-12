@@ -17,6 +17,7 @@ import adminRoutes from './routes/admin.js';
 import backupRoutes from './routes/backup.js';
 import preferencesRoutes from './routes/preferences.js';
 import totpRoutes from './routes/totp.js';
+import logsRoutes from './routes/logs.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -132,6 +133,7 @@ app.use('/api/admin', authenticate, adminRoutes);
 app.use('/api/backup', authenticate, backupRoutes);
 app.use('/api/preferences', authenticate, preferencesRoutes);
 app.use('/api/totp', totpOptionalAuth, totpRoutes);
+app.use('/api/admin', authenticate, logsRoutes);
 
 // Serve client build in production
 const clientDist = path.join(__dirname, 'public');
@@ -140,6 +142,12 @@ app.get('*', (req, res) => {
     if (!req.path.startsWith('/api')) {
         res.sendFile(path.join(clientDist, 'index.html'));
     }
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+    console.error('Unhandled error:', err.message);
+    res.status(err.status || 500).json({ error: err.message || 'Internal server error' });
 });
 
 app.listen(PORT, '0.0.0.0', () => {

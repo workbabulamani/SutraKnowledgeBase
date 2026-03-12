@@ -3,6 +3,8 @@ client/node_modules
 server/node_modules
 data
 uploads
+server/data
+server/uploads
 .git
 .env
 *.md

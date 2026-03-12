@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useTheme, THEMES, ACCENT_COLORS } from '../context/ThemeContext.jsx';
 import { api } from '../api/client.js';
@@ -19,6 +19,8 @@ export default function SettingsModal({ onClose }) {
     const [tab, setTab] = useState('general');
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
+    const [editingName, setEditingName] = useState(false);
+    const [newName, setNewName] = useState(user?.name || '');
 
     // Admin state
     const [users, setUsers] = useState([]);
@@ -40,6 +42,12 @@ export default function SettingsModal({ onClose }) {
     const [restoringFile, setRestoringFile] = useState(false);
     const [showDownloadKey, setShowDownloadKey] = useState(false);
 
+    // Logs state
+    const [logs, setLogs] = useState([]);
+    const [logsPage, setLogsPage] = useState(1);
+    const [logsPagination, setLogsPagination] = useState(null);
+    const [loadingLogs, setLoadingLogs] = useState(false);
+
     const isAdmin = user?.role === 'admin';
 
     const loadUsers = async () => {
@@ -58,6 +66,17 @@ export default function SettingsModal({ onClose }) {
             setBackups(data.backups);
         } catch (err) { addToast('Failed to load backups'); }
         finally { setLoadingBackups(false); }
+    };
+
+    const loadLogs = async (page = 1) => {
+        setLoadingLogs(true);
+        try {
+            const data = await api.getLogs(page);
+            setLogs(data.logs);
+            setLogsPagination(data.pagination);
+            setLogsPage(page);
+        } catch (err) { addToast('Failed to load logs'); }
+        finally { setLoadingLogs(false); }
     };
 
     const handleChangePassword = async (e) => {
@@ -110,7 +129,7 @@ export default function SettingsModal({ onClose }) {
 
     const handleDownload = async () => {
         if (downloadKey.trim().length < 8) { addToast('Encryption key must be at least 8 characters'); return; }
-        try { await api.downloadBackup(downloadKey.trim()); addToast('Download started'); }
+        try { await api.downloadBackup(downloadKey.trim()); addToast('All collections and files download started successfully'); }
         catch (err) { addToast('Download failed'); }
     };
 
@@ -164,10 +183,10 @@ export default function SettingsModal({ onClose }) {
         return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     };
 
-    const handleSaveAndClose = () => { addToast('Settings saved'); onClose(); };
+    const handleSave = () => { addToast('Settings saved'); };
 
     return (
-        <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-overlay">
             <div className="modal settings-modal" onClick={e => e.stopPropagation()}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
                     <h2 style={{ margin: 0 }}>Settings</h2>
@@ -185,6 +204,9 @@ export default function SettingsModal({ onClose }) {
                     <button className={`btn btn-ghost${tab === 'backup' ? ' active' : ''}`} onClick={() => { setTab('backup'); loadBackups(); }} style={{ fontSize: 'var(--font-size-sm)' }}>Backup & Restore</button>
                     {isAdmin && (
                         <button className={`btn btn-ghost${tab === 'admin' ? ' active' : ''}`} onClick={() => { setTab('admin'); loadUsers(); }} style={{ fontSize: 'var(--font-size-sm)' }}>Users</button>
+                    )}
+                    {isAdmin && (
+                        <button className={`btn btn-ghost${tab === 'logs' ? ' active' : ''}`} onClick={() => { setTab('logs'); loadLogs(); }} style={{ fontSize: 'var(--font-size-sm)' }}>Logs</button>
                     )}
                 </div>
 
@@ -235,9 +257,34 @@ export default function SettingsModal({ onClose }) {
                         <div className="settings-panel">
                             <div className="settings-group">
                                 <h3>Profile</h3>
-                                <div className="settings-row"><span className="label">Name</span><span>{user?.name}</span></div>
                                 <div className="settings-row"><span className="label">Email</span><span>{user?.email}</span></div>
                                 <div className="settings-row"><span className="label">Role</span><span className={`role-badge ${user?.role}`}>{user?.role}</span></div>
+                                <div className="settings-row">
+                                    <span className="label">Name</span>
+                                    {editingName ? (
+                                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                                            <input className="input" value={newName} onChange={e => setNewName(e.target.value)} style={{ padding: '4px 8px', fontSize: 'var(--font-size-sm)', width: 160 }} autoFocus />
+                                            <button className="btn btn-primary" style={{ padding: '4px 10px', fontSize: 'var(--font-size-xs)' }} onClick={async () => {
+                                                if (!newName.trim()) return;
+                                                try {
+                                                    const data = await api.changeName(newName.trim());
+                                                    addToast('Name updated');
+                                                    setEditingName(false);
+                                                    // Update local user state
+                                                    if (data.user) {
+                                                        localStorage.setItem('md_viewer_user', JSON.stringify(data.user));
+                                                    }
+                                                } catch (err) { addToast(err.message || 'Failed to update name'); }
+                                            }}>Save</button>
+                                            <button className="btn btn-ghost" style={{ padding: '4px 8px', fontSize: 'var(--font-size-xs)' }} onClick={() => { setEditingName(false); setNewName(user?.name || ''); }}>Cancel</button>
+                                        </div>
+                                    ) : (
+                                        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                                            <span>{user?.name}</span>
+                                            <button className="btn btn-ghost" style={{ padding: '2px 8px', fontSize: 'var(--font-size-xs)' }} onClick={() => setEditingName(true)}>Change</button>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                             <div className="settings-group">
                                 <h3>Change Password</h3>
@@ -415,10 +462,46 @@ export default function SettingsModal({ onClose }) {
                             )}
                         </div>
                     )}
+
+                    {tab === 'logs' && isAdmin && (
+                        <div className="settings-panel">
+                            <h3 style={{ margin: '0 0 12px', color: 'var(--text-tertiary)', fontSize: 'var(--font-size-sm)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Activity Log</h3>
+                            {loadingLogs ? (
+                                <div style={{ textAlign: 'center', padding: 20 }}><span className="spinner" /></div>
+                            ) : logs.length === 0 ? (
+                                <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-tertiary)' }}>No log entries yet.</p>
+                            ) : (
+                                <>
+                                    <table className="admin-table" style={{ fontSize: 'var(--font-size-xs)' }}>
+                                        <thead><tr><th>Time</th><th>User</th><th>Action</th><th>Details</th><th>IP</th></tr></thead>
+                                        <tbody>
+                                            {logs.map(log => (
+                                                <tr key={log.id}>
+                                                    <td style={{ whiteSpace: 'nowrap' }}>{new Date(log.created_at).toLocaleString()}</td>
+                                                    <td>{log.user_name || '\u2014'}</td>
+                                                    <td><span className="role-badge">{log.action}</span></td>
+                                                    <td style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{log.details}</td>
+                                                    <td style={{ color: 'var(--text-tertiary)' }}>{log.ip_address || '\u2014'}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                    {logsPagination && logsPagination.totalPages > 1 && (
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, fontSize: 'var(--font-size-xs)' }}>
+                                            <button className="btn btn-ghost" disabled={logsPage <= 1} onClick={() => loadLogs(logsPage - 1)} style={{ fontSize: 'var(--font-size-xs)' }}>{'\u2190'} Previous</button>
+                                            <span style={{ color: 'var(--text-tertiary)' }}>Page {logsPage} of {logsPagination.totalPages}</span>
+                                            <button className="btn btn-ghost" disabled={logsPage >= logsPagination.totalPages} onClick={() => loadLogs(logsPage + 1)} style={{ fontSize: 'var(--font-size-xs)' }}>Next {'\u2192'}</button>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    )}
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border-primary)' }}>
-                    <button className="btn btn-primary" onClick={handleSaveAndClose}>Save & Close</button>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border-primary)' }}>
+                    <button className="btn btn-ghost" onClick={onClose}>Close</button>
+                    <button className="btn btn-primary" onClick={handleSave}>Save</button>
                 </div>
             </div>
 
