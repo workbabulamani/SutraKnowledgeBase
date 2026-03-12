@@ -338,6 +338,9 @@ function CollectionModal({ collections, activeCollection, switchCollection, load
                                 <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-tertiary)', marginTop: 2, paddingLeft: 24 }}>{col.file_count || 0} files · {col.folder_count || 0} folders</div>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                {col.id === activeCollection?.id && (
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-color)" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
+                                )}
                                 {canEdit && renamingId !== col.id && deletingId !== col.id && (
                                     <>
                                         <button className="btn-icon" title="Rename" onClick={(e) => { e.stopPropagation(); setRenamingId(col.id); setRenameValue(col.name); }} style={{ opacity: 0.5 }}>
@@ -360,9 +363,6 @@ function CollectionModal({ collections, activeCollection, switchCollection, load
                                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                                         </button>
                                     </div>
-                                )}
-                                {col.id === activeCollection?.id && (
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent-color)" strokeWidth="2.5"><polyline points="20 6 9 17 4 12" /></svg>
                                 )}
                             </div>
                         </div>

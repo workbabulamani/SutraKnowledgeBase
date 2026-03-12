@@ -208,6 +208,7 @@ export function AppProvider({ children }) {
         setActiveCollection(collection);
         setTabs([]);
         setActiveTabId(null);
+        localStorage.removeItem('grnth_last_file');
     }, [tabs]);
 
     const activeTab = tabs.find(t => t.id === activeTabId) || null;
