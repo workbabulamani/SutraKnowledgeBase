@@ -101,7 +101,7 @@ class CodeBlockWidget extends WidgetType {
 }
 
 // =====================================================================
-// WIDGET: Obsidian-style Table — always rendered, never raw markdown
+// WIDGET: Grnth-style Table — always rendered, never raw markdown
 // All mutations use local copies; never mutate this.rows in-place.
 // =====================================================================
 class TableWidget extends WidgetType {
@@ -129,7 +129,7 @@ class TableWidget extends WidgetType {
         scrollBox.className = 'cm-table-scroll';
 
         const table = document.createElement('table');
-        table.className = 'cm-obsidian-table';
+        table.className = 'cm-grnth-table';
 
         // Thead: header row
         const thead = document.createElement('thead');
@@ -599,7 +599,7 @@ function buildBlockDecos(state) {
         }
         if (inCode) { cbLines.push(text); continue; }
 
-        // Tables — ALWAYS rendered as widget (Obsidian-style, never raw markdown)
+        // Tables — ALWAYS rendered as widget (Grnth-style, never raw markdown)
         if (text.trim().startsWith('|')) {
             const tableStart = i;
             const tableTextLines = [text];
@@ -835,36 +835,36 @@ const livePreviewTheme = EditorView.theme({
     },
     '.cm-codeblock-pre code': { background: 'transparent', fontSize: 'inherit', padding: '0' },
 
-    // ---- Obsidian-style Table ----
+    // ---- Grnth-style Table ----
     '.cm-table-widget': { margin: '16px 0', position: 'relative', overflow: 'visible' },
     '.cm-table-scroll': { overflowX: 'auto', maxWidth: '100%' },
-    '.cm-obsidian-table': {
+    '.cm-grnth-table': {
         borderCollapse: 'collapse', width: '100%', fontSize: '0.9em',
         border: '1px solid var(--border-primary)', borderRadius: '6px',
     },
-    '.cm-obsidian-table th': {
+    '.cm-grnth-table th': {
         background: 'var(--bg-tertiary)', fontWeight: '600', padding: '8px 12px',
         borderBottom: '2px solid var(--border-primary)', borderRight: '1px solid var(--border-primary)',
         minWidth: '60px',
     },
-    '.cm-obsidian-table td': {
+    '.cm-grnth-table td': {
         padding: '6px 12px', borderBottom: '1px solid var(--border-primary)',
         borderRight: '1px solid var(--border-primary)', minWidth: '60px',
     },
-    '.cm-obsidian-table th:last-child, .cm-obsidian-table td:last-child': { borderRight: 'none' },
-    '.cm-obsidian-table tbody tr:last-child td': { borderBottom: 'none' },
-    '.cm-obsidian-table th:focus, .cm-obsidian-table td:focus': {
+    '.cm-grnth-table th:last-child, .cm-grnth-table td:last-child': { borderRight: 'none' },
+    '.cm-grnth-table tbody tr:last-child td': { borderBottom: 'none' },
+    '.cm-grnth-table th:focus, .cm-grnth-table td:focus': {
         outline: '2px solid var(--accent-color)', outlineOffset: '-2px',
         background: 'color-mix(in srgb, var(--accent-color) 8%, transparent)',
     },
-    '.cm-obsidian-table code': {
+    '.cm-grnth-table code': {
         background: 'var(--bg-secondary)', padding: '1px 4px', borderRadius: '3px',
         fontSize: '0.9em', fontFamily: 'var(--font-mono, monospace)', color: 'var(--accent-color)',
     },
-    '.cm-obsidian-table strong': { fontWeight: '700' },
-    '.cm-obsidian-table em': { fontStyle: 'italic' },
-    '.cm-obsidian-table a': { color: 'var(--accent-color)', textDecoration: 'underline' },
-    '.cm-obsidian-table del': { textDecoration: 'line-through', opacity: '0.6' },
+    '.cm-grnth-table strong': { fontWeight: '700' },
+    '.cm-grnth-table em': { fontStyle: 'italic' },
+    '.cm-grnth-table a': { color: 'var(--accent-color)', textDecoration: 'underline' },
+    '.cm-grnth-table del': { textDecoration: 'line-through', opacity: '0.6' },
     // Delete row/col buttons (appear on cell focus)
     '.cm-table-del-btn': {
         position: 'absolute', width: '18px', height: '18px', borderRadius: '50%',
